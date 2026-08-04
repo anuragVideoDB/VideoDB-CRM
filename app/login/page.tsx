@@ -14,6 +14,20 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Supabase can return an error whose message is empty or a bare "{}" (e.g. a
+  // 500 from the auth service). Always surface something a human can act on.
+  function describeAuthError(err: {
+    message?: string;
+    status?: number;
+    code?: string;
+  }): string {
+    const raw = (err.message ?? "").trim();
+    const useless = raw === "" || raw === "{}" || raw === "[object Object]";
+    if (!useless) return raw;
+    const status = err.status ? ` (HTTP ${err.status})` : "";
+    return `Sign-in failed${status}. Please try again, or contact your admin if it persists.`;
+  }
+
   async function handlePassword(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -21,7 +35,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(describeAuthError(error));
       return;
     }
     router.push("/dashboard");
@@ -41,7 +55,7 @@ export default function LoginPage() {
     });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(describeAuthError(error));
       return;
     }
     setMessage("Check your inbox for a magic sign-in link.");
