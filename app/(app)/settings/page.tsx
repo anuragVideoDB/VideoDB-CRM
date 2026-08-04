@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import CopyField from "@/components/CopyField";
+import Connections from "./Connections";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,19 @@ export default async function SettingsPage() {
         activity flow into this CRM automatically.
       </p>
 
-      <div className="mt-6 space-y-4">
+      <div className="mt-6">
+        <Connections />
+      </div>
+
+      <h2 className="mt-8 text-sm font-semibold text-slate-900">
+        Webhook URLs
+      </h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Use the buttons above to connect automatically, or paste these
+        manually.
+      </p>
+
+      <div className="mt-4 space-y-4">
         {endpoints.map((e) => (
           <div
             key={e.tool}
