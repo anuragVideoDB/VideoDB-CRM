@@ -137,14 +137,19 @@ export async function syncSmartleadWebhooks(): Promise<{
       }
     }
 
+    // Surface the actual reason — a bare "1 failed" is not diagnosable.
+    const detail = failed.length
+      ? ` First error (${failed[0].campaign}): ${failed[0].error}`
+      : "";
+
     return {
       ok: failed.length === 0,
       created,
       updated,
       failed,
       message: `Connected ${created + updated} of ${campaigns.length} campaigns${
-        failed.length ? `, ${failed.length} failed` : ""
-      }.`,
+        failed.length ? `, ${failed.length} failed.` : "."
+      }${detail}`,
     };
   } catch (e) {
     return {

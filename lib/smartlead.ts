@@ -299,16 +299,36 @@ export async function upsertWebhook(
     // Listing can fail on some campaigns; fall through and create.
   }
 
-  await call(`/campaigns/${campaignId}/webhooks`, {
-    method: "POST",
-    body: JSON.stringify({
-      id: existingId,
-      name,
-      webhook_url: webhookUrl,
-      event_types: eventTypes,
-      categories: [],
-    }),
-  });
+  // Only send `id` when updating — some Smartlead accounts reject an explicit
+  // null. `categories` is omitted entirely when empty for the same reason.
+  const payload: Record<string, unknown> = {
+    name,
+    webhook_url: webhookUrl,
+    event_types: eventTypes,
+  };
+  if (existingId !== null) payload.id = existingId;
+
+  try {
+    await call(`/campaigns/${campaignId}/webhooks`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    // Retry once with the fuller shape the docs describe, in case this
+    // account expects the explicit null id / categories array.
+    await call(`/campaigns/${campaignId}/webhooks`, {
+      method: "POST",
+      body: JSON.stringify({
+        id: existingId,
+        name,
+        webhook_url: webhookUrl,
+        event_types: eventTypes,
+        categories: [],
+      }),
+    }).catch(() => {
+      throw e; // surface the original, more informative error
+    });
+  }
 
   return { campaignId, created: existingId === null };
 }
