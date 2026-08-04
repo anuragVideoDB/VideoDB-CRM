@@ -1,13 +1,18 @@
+import { headers } from "next/headers";
 import CopyField from "@/components/CopyField";
 
 export const dynamic = "force-dynamic";
 
 // The webhook URLs each external tool should call. Secrets are read
 // server-side and shown only to the logged-in team.
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  // Derive the app's own base URL from the incoming request so the webhook
+  // URLs are always correct, with no env var to keep in sync.
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
   const base =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-    "https://your-app.vercel.app";
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || `${proto}://${host}`;
 
   const endpoints = [
     {
