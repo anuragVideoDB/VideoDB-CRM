@@ -275,12 +275,255 @@ export type Database = {
           },
         ]
       }
+      agent_actions: {
+        Row: {
+          approved_by: string | null
+          contact_id: string | null
+          created_at: string
+          decided_at: string | null
+          executed_at: string | null
+          id: string
+          lead_id: string | null
+          payload: Json
+          proposed_by: string | null
+          reasoning: string | null
+          requires_approval: boolean
+          result: Json | null
+          status: string
+          thread_id: string | null
+          title: string | null
+          type: string
+        }
+        Insert: {
+          approved_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          executed_at?: string | null
+          id?: string
+          lead_id?: string | null
+          payload?: Json
+          proposed_by?: string | null
+          reasoning?: string | null
+          requires_approval?: boolean
+          result?: Json | null
+          status?: string
+          thread_id?: string | null
+          title?: string | null
+          type: string
+        }
+        Update: {
+          approved_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          executed_at?: string | null
+          id?: string
+          lead_id?: string | null
+          payload?: Json
+          proposed_by?: string | null
+          reasoning?: string | null
+          requires_approval?: boolean
+          result?: Json | null
+          status?: string
+          thread_id?: string | null
+          title?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_actions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_base: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          industry: string | null
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          body: string | null
+          channel: string
+          contact_id: string | null
+          created_at: string
+          direction: string
+          drafted_by: string | null
+          external_id: string | null
+          from_address: string | null
+          id: string
+          lead_id: string | null
+          metadata: Json
+          provider: string | null
+          sent_at: string | null
+          subject: string | null
+          thread_id: string | null
+          to_address: string | null
+        }
+        Insert: {
+          body?: string | null
+          channel: string
+          contact_id?: string | null
+          created_at?: string
+          direction: string
+          drafted_by?: string | null
+          external_id?: string | null
+          from_address?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          provider?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          to_address?: string | null
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          contact_id?: string | null
+          created_at?: string
+          direction?: string
+          drafted_by?: string | null
+          external_id?: string | null
+          from_address?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          provider?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          to_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      threads: {
+        Row: {
+          channel: string
+          contact_id: string | null
+          created_at: string
+          external_thread_id: string | null
+          id: string
+          last_message_at: string | null
+          lead_id: string | null
+          provider: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          contact_id?: string | null
+          created_at?: string
+          external_thread_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          lead_id?: string | null
+          provider?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          contact_id?: string | null
+          created_at?: string
+          external_thread_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          lead_id?: string | null
+          provider?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sequence_steps: {
+        Row: {
+          action_type: string
+          channel: string
+          id: string
+          is_active: boolean
+          prompt: string | null
+          sequence_id: string
+          step_number: number
+          wait_days: number
+        }
+        Insert: {
+          action_type?: string
+          channel: string
+          id?: string
+          is_active?: boolean
+          prompt?: string | null
+          sequence_id: string
+          step_number: number
+          wait_days?: number
+        }
+        Update: {
+          action_type?: string
+          channel?: string
+          id?: string
+          is_active?: boolean
+          prompt?: string | null
+          sequence_id?: string
+          step_number?: number
+          wait_days?: number
+        }
+        Relationships: []
+      }
       sequence_enrollments: {
         Row: {
+          current_step: number
           enrolled_at: string
           external_id: string | null
           id: string
           lead_id: string
+          next_action_at: string | null
           sequence_id: string
           status: string
           updated_at: string
