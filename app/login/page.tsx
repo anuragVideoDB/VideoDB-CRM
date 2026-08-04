@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [mode, setMode] = useState<"password" | "magic">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,6 +31,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    // Created here rather than at render: prerendering must not require env vars.
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
@@ -47,6 +48,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     setMessage(null);
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
