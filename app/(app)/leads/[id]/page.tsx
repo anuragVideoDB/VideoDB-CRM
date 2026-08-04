@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SourceBadge, ChannelBadge } from "@/components/Badges";
 import { ACTIVITY_ICONS, ACTIVITY_LABELS } from "@/lib/constants";
 import { StatusSelect, NoteBox } from "./LeadControls";
+import AgentPanel from "./AgentPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,13 @@ export default async function LeadDetailPage({
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Left: details */}
         <div className="space-y-6 lg:col-span-1">
+          <AgentPanel
+            leadId={lead.id}
+            hasInbound={(activities ?? []).some(
+              (a) => a.direction === "inbound" && a.body
+            )}
+          />
+
           <div className="rounded-xl border border-slate-200 bg-white p-5">
             <h2 className="text-sm font-semibold text-slate-900">Contact</h2>
             <dl className="mt-3 space-y-2 text-sm">
