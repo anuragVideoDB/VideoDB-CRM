@@ -12,6 +12,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      automation_settings: {
+        Row: {
+          id: boolean
+          auto_draft_replies: boolean
+          auto_send_replies: boolean
+          auto_advance_sequences: boolean
+          auto_send_sequence_steps: boolean
+          pause_on_reply: boolean
+          send_window_start: number
+          send_window_end: number
+          timezone: string
+          max_actions_per_run: number
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          auto_draft_replies?: boolean
+          auto_send_replies?: boolean
+          auto_advance_sequences?: boolean
+          auto_send_sequence_steps?: boolean
+          pause_on_reply?: boolean
+          send_window_start?: number
+          send_window_end?: number
+          timezone?: string
+          max_actions_per_run?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          auto_draft_replies?: boolean
+          auto_send_replies?: boolean
+          auto_advance_sequences?: boolean
+          auto_send_sequence_steps?: boolean
+          pause_on_reply?: boolean
+          send_window_start?: number
+          send_window_end?: number
+          timezone?: string
+          max_actions_per_run?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      automation_runs: {
+        Row: {
+          id: string
+          started_at: string
+          finished_at: string | null
+          trigger: string
+          replies_drafted: number
+          steps_advanced: number
+          actions_sent: number
+          errors: Json
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          started_at?: string
+          finished_at?: string | null
+          trigger?: string
+          replies_drafted?: number
+          steps_advanced?: number
+          actions_sent?: number
+          errors?: Json
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          started_at?: string
+          finished_at?: string | null
+          trigger?: string
+          replies_drafted?: number
+          steps_advanced?: number
+          actions_sent?: number
+          errors?: Json
+          notes?: string | null
+        }
+        Relationships: []
+      }
       activities: {
         Row: {
           body: string | null
@@ -601,6 +679,47 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      automation_get_work: {
+        Args: { p_secret: string; p_limit?: number }
+        Returns: Json
+      }
+      automation_record_action: {
+        Args: {
+          p_secret: string
+          p_lead_id: string
+          p_type: string
+          p_title: string
+          p_reasoning: string
+          p_payload: Json
+          p_trigger_activity_id?: string | null
+          p_status?: string
+        }
+        Returns: string
+      }
+      automation_complete_action: {
+        Args: {
+          p_secret: string
+          p_action_id: string
+          p_status: string
+          p_result?: Json
+          p_activity?: Json
+        }
+        Returns: undefined
+      }
+      automation_pause_on_reply: {
+        Args: { p_secret: string; p_lead_id: string }
+        Returns: undefined
+      }
+      automation_log_run: {
+        Args: {
+          p_secret: string
+          p_replies_drafted: number
+          p_actions_sent: number
+          p_errors?: Json
+          p_notes?: string | null
+        }
+        Returns: undefined
+      }
       crm_ingest: {
         Args: {
           p_activity?: Json

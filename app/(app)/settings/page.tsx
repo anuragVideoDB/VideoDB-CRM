@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import CopyField from "@/components/CopyField";
 import Connections from "./Connections";
+import Automation from "./Automation";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,10 @@ export default async function SettingsPage() {
 
       <div className="mt-6">
         <Connections />
+      </div>
+
+      <div className="mt-6">
+        <Automation />
       </div>
 
       <h2 className="mt-8 text-sm font-semibold text-slate-900">

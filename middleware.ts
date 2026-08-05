@@ -31,8 +31,12 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isAuthRoute = path === "/login" || path.startsWith("/auth");
+  // These authenticate themselves (webhook secret / cron secret) and are
+  // called by external systems with no session — never redirect them to login.
   const isPublicApi =
-    path.startsWith("/api/webhooks") || path.startsWith("/api/inbound");
+    path.startsWith("/api/webhooks") ||
+    path.startsWith("/api/inbound") ||
+    path.startsWith("/api/cron");
 
   // Unauthenticated users trying to reach the app → send to /login
   if (!user && !isAuthRoute && !isPublicApi) {
