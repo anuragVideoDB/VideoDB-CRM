@@ -679,6 +679,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      crm_analytics: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
       automation_get_work: {
         Args: { p_secret: string; p_limit?: number }
         Returns: Json
