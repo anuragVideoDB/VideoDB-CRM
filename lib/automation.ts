@@ -120,6 +120,10 @@ function contextBlock(r: ReplyWork): string {
   return `${lines.join("\n")}\n\nInteraction history:\n${timeline || "(none)"}`;
 }
 
+const REPLY_CLASSES = [
+  "interested", "objection", "not_now", "referral", "ooo", "unsubscribe", "other",
+] as const;
+
 const REPLY_RULES = `
 You write replies to prospects on behalf of the company in the KNOWLEDGE BASE.
 
@@ -141,7 +145,13 @@ Hard rules:
 async function draftReplyFor(
   r: ReplyWork,
   knowledge: KnowledgeRow[]
-): Promise<{ body: string; intent: string; reasoning: string; confidence: number } | null> {
+): Promise<{
+  body: string;
+  intent: string;
+  classification: string;
+  reasoning: string;
+  confidence: number;
+} | null> {
   const isLinkedIn = r.channel === "linkedin";
 
   const out = await completeJSON<{
@@ -150,6 +160,7 @@ async function draftReplyFor(
     reasoning?: string;
     confidence?: number;
     needs_human?: boolean;
+    classification?: string;
   }>({
     system: `${REPLY_RULES}
 
@@ -159,6 +170,14 @@ Return a JSON object with keys:
   "body"        - the reply text, plain text with line breaks, no signature block
   "intent"      - one of: answer_question, handle_objection, book_meeting,
                   share_resource, qualify, polite_close
+  "classification" - how to file this reply, one of:
+                  interested   (wants to talk, asks for a demo//details)
+                  objection    (pushback we can answer)
+                  not_now      (timing — revisit later)
+                  referral     (points us at a colleague)
+                  ooo          (out of office / auto-reply)
+                  unsubscribe  (asks to stop contacting them)
+                  other
   "reasoning"   - one sentence on your read of their message, for the human reviewer
   "confidence"  - 0.0 to 1.0, how confident you are this reply is correct to send
   "needs_human" - true if this genuinely needs a person (pricing negotiation, complaint,
@@ -186,9 +205,12 @@ Draft our reply.`,
 
   if (!out?.body?.trim()) return null;
 
+  const cls = String(out.classification ?? "").toLowerCase();
+
   return {
     body: out.body.trim(),
     intent: out.intent ?? "answer_question",
+    classification: (REPLY_CLASSES as readonly string[]).includes(cls) ? cls : "other",
     reasoning: out.needs_human
       ? `⚠️ Flagged for a human: ${out.reasoning ?? "needs judgement"}`
       : out.reasoning ?? "",
@@ -441,6 +463,8 @@ export async function tick(opts: { force?: boolean } = {}): Promise<TickResult> 
           p_payload: payload as never,
           p_trigger_activity_id: r.activity_id,
           p_status: "proposed",
+          p_classification: draft.classification,
+          p_confidence: draft.confidence,
         }
       );
 
@@ -454,7 +478,9 @@ export async function tick(opts: { force?: boolean } = {}): Promise<TickResult> 
 
       // Fully autonomous sending, only when explicitly enabled and the model
       // is confident and hasn't flagged it for a human.
-      if (settings.auto_send_replies && draft.confidence >= 0.75) {
+      const autoSendable =
+        draft.classification !== "ooo" && draft.classification !== "unsubscribe";
+      if (settings.auto_send_replies && autoSendable && draft.confidence >= 0.75) {
         try {
           await executeReply(channel, payload, draft.body);
           await supabase.rpc("automation_complete_action", {
@@ -488,6 +514,9 @@ export async function tick(opts: { force?: boolean } = {}): Promise<TickResult> 
       });
     }
   }
+
+  // Re-signal: parked leads whose timer elapsed rejoin the pipeline.
+  await supabase.rpc("wake_due_resignals", { p_secret: secret() });
 
   const leadsEnrolled = await runEnrollments(supabase, settings, errors);
 

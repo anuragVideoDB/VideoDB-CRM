@@ -12,6 +12,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      message_variants: {
+        Row: {
+          id: string
+          provider: string
+          campaign_external_id: string | null
+          campaign_name: string | null
+          step_number: number
+          angle: string | null
+          hook: string | null
+          cta: string | null
+          segment: string | null
+          label: string | null
+          subject: string | null
+          body_preview: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: { [k: string]: unknown }
+        Update: { [k: string]: unknown }
+        Relationships: []
+      }
+      suppressions: {
+        Row: {
+          id: string
+          email: string | null
+          linkedin_url: string | null
+          domain: string | null
+          reason: string
+          notes: string | null
+          source: string | null
+          created_by: string | null
+          created_at: string
+          expires_at: string | null
+        }
+        Insert: { [k: string]: unknown }
+        Update: { [k: string]: unknown }
+        Relationships: []
+      }
+      channel_health: {
+        Row: {
+          id: string
+          provider: string
+          identifier: string
+          display_name: string | null
+          status: string
+          detail: string | null
+          checked_at: string
+        }
+        Insert: { [k: string]: unknown }
+        Update: { [k: string]: unknown }
+        Relationships: []
+      }
       routing_rules: {
         Row: {
           id: string
@@ -171,6 +224,8 @@ export type Database = {
           source: string | null
           title: string | null
           type: string
+          variant_id: string | null
+          classification: string | null
         }
         Insert: {
           body?: string | null
@@ -215,6 +270,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "message_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -368,6 +430,11 @@ export type Database = {
           source: string
           source_detail: Json
           status: string
+          tier: string | null
+          segment: string | null
+          suppressed_at: string | null
+          parked_until: string | null
+          park_trigger: string | null
           updated_at: string
         }
         Insert: {
@@ -384,6 +451,11 @@ export type Database = {
           source?: string
           source_detail?: Json
           status?: string
+          tier?: string | null
+          segment?: string | null
+          suppressed_at?: string | null
+          parked_until?: string | null
+          park_trigger?: string | null
           updated_at?: string
         }
         Update: {
@@ -400,6 +472,11 @@ export type Database = {
           source?: string
           source_detail?: Json
           status?: string
+          tier?: string | null
+          segment?: string | null
+          suppressed_at?: string | null
+          parked_until?: string | null
+          park_trigger?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -437,6 +514,9 @@ export type Database = {
           thread_id: string | null
           title: string | null
           type: string
+          classification: string | null
+          confidence: number | null
+          trigger_activity_id: string | null
         }
         Insert: {
           approved_by?: string | null
@@ -745,6 +825,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      variant_analytics: {
+        Args: { p_days?: number; p_campaign?: string | null; p_min_sends?: number }
+        Returns: Json
+      }
+      campaign_overview: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
+      needs_attention: {
+        Args: Record<string, never>
+        Returns: Json
+      }
+      wake_due_resignals: {
+        Args: { p_secret: string }
+        Returns: number
+      }
+      suppress_contact: {
+        Args: { p_email: string | null; p_linkedin: string | null; p_reason: string; p_source?: string | null }
+        Returns: undefined
+      }
       automation_get_enrollments: {
         Args: { p_secret: string; p_limit?: number }
         Returns: Json

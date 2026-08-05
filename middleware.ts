@@ -48,7 +48,7 @@ export async function middleware(request: NextRequest) {
   // Logged-in users on /login → send to dashboard
   if (user && path === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/today";
     return NextResponse.redirect(url);
   }
 

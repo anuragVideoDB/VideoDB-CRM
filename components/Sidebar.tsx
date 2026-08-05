@@ -4,11 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: "📊" },
+  { href: "/today", label: "Today", icon: "🎯" },
+  { href: "/inbox", label: "Inbox", icon: "📨" },
   { href: "/leads", label: "Leads", icon: "🧲" },
-  { href: "/analytics", label: "Analytics", icon: "📈" },
   { href: "/pipeline", label: "Pipeline", icon: "📋" },
-  { href: "/approvals", label: "Approvals", icon: "✅" },
+  { href: "/campaigns", label: "Campaigns", icon: "🚀" },
+  { href: "/variants", label: "Variants", icon: "🧪" },
+  { href: "/analytics", label: "Analytics", icon: "📈" },
+  { href: "/resignal", label: "Re-signal", icon: "⏳" },
+  { href: "/suppression", label: "Suppression", icon: "🚫" },
   { href: "/routing", label: "Routing", icon: "🔀" },
   { href: "/knowledge", label: "Knowledge", icon: "📚" },
   { href: "/settings", label: "Settings", icon: "⚙️" },

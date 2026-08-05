@@ -9,6 +9,9 @@ type Search = {
   channel?: string;
   status?: string;
   source?: string;
+  tier?: string;
+  segment?: string;
+  campaign?: string;
   q?: string;
 };
 
@@ -23,7 +26,7 @@ export default async function LeadsPage({
   let query = supabase
     .from("leads")
     .select(
-      "id, status, channel, source, priority, created_at, last_activity_at, contact:contacts(full_name, email, title), company:companies(name, domain)"
+      "id, status, channel, source, tier, segment, priority, created_at, last_activity_at, contact:contacts(full_name, email, title), company:companies(name, domain, industry)"
     )
     .order("created_at", { ascending: false })
     .limit(200);
@@ -31,6 +34,8 @@ export default async function LeadsPage({
   if (sp.channel) query = query.eq("channel", sp.channel);
   if (sp.status) query = query.eq("status", sp.status);
   if (sp.source) query = query.eq("source", sp.source);
+  if (sp.tier) query = query.eq("tier", sp.tier);
+  if (sp.segment) query = query.eq("segment", sp.segment);
 
   const { data: leads } = await query;
 
@@ -46,6 +51,10 @@ export default async function LeadsPage({
       (co?.name ?? "").toLowerCase().includes(q)
     );
   });
+
+  const segments = Array.from(
+    new Set((leads ?? []).map((l) => l.segment).filter(Boolean) as string[])
+  ).sort();
 
   const chip = (label: string, params: Search, active: boolean) => {
     const usp = new URLSearchParams();
@@ -87,6 +96,26 @@ export default async function LeadsPage({
         )}
       </div>
 
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span className="text-xs text-slate-400">Tier</span>
+        {["A", "B", "C"].map((t) =>
+          chip(t, { ...sp, tier: sp.tier === t ? undefined : t }, sp.tier === t)
+        )}
+        {segments.length > 0 && (
+          <>
+            <span className="mx-1 h-4 w-px bg-slate-200" />
+            <span className="text-xs text-slate-400">Segment</span>
+            {segments.map((sg) =>
+              chip(
+                sg,
+                { ...sp, segment: sp.segment === sg ? undefined : sg },
+                sp.segment === sg
+              )
+            )}
+          </>
+        )}
+      </div>
+
       {/* Search */}
       <form className="mt-4" action="/leads" method="get">
         {sp.channel && <input type="hidden" name="channel" value={sp.channel} />}
@@ -106,6 +135,7 @@ export default async function LeadsPage({
             <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Company</th>
+              <th className="px-4 py-3 font-medium">Tier</th>
               <th className="px-4 py-3 font-medium">Stage</th>
               <th className="px-4 py-3 font-medium">Source</th>
               <th className="px-4 py-3 font-medium">Motion</th>
@@ -115,7 +145,7 @@ export default async function LeadsPage({
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-slate-400">
                   No leads yet. They&apos;ll show up here as your website form,
                   Smartlead, HeyReach, and Clay send data.
                 </td>
@@ -145,6 +175,15 @@ export default async function LeadsPage({
                     )}
                   </td>
                   <td className="px-4 py-3 text-slate-600">{co?.name || "—"}</td>
+                  <td className="px-4 py-3">
+                    {l.tier ? (
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                        {l.tier}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-300">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={l.status} />
                   </td>

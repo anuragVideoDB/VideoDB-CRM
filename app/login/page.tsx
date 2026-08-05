@@ -39,7 +39,7 @@ export default function LoginPage() {
       setError(describeAuthError(error));
       return;
     }
-    router.push("/dashboard");
+    router.push("/today");
     router.refresh();
   }
 

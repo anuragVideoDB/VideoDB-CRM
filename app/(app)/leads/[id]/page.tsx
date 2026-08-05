@@ -5,6 +5,7 @@ import { SourceBadge, ChannelBadge } from "@/components/Badges";
 import { ACTIVITY_ICONS, ACTIVITY_LABELS } from "@/lib/constants";
 import { StatusSelect, NoteBox } from "./LeadControls";
 import AgentPanel from "./AgentPanel";
+import EnrichmentPanel from "./EnrichmentPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export default async function LeadDetailPage({
 
   const { data: activities } = await supabase
     .from("activities")
-    .select("*")
+    .select("*, variant:message_variants(angle, hook, cta, label, subject, step_number)")
     .eq("lead_id", id)
     .order("occurred_at", { ascending: false });
 
@@ -122,6 +123,19 @@ export default async function LeadDetailPage({
             </dl>
           </div>
 
+          <EnrichmentPanel
+            lead={{
+              tier: lead.tier,
+              segment: lead.segment,
+              score: lead.score,
+              parked_until: lead.parked_until,
+              park_trigger: lead.park_trigger,
+              suppressed_at: lead.suppressed_at,
+            }}
+            contactEnrichment={(lead.contact as { enrichment?: unknown } | null)?.enrichment}
+            companyEnrichment={(lead.company as { enrichment?: unknown } | null)?.enrichment}
+          />
+
           {lead.message && (
             <div className="rounded-xl border border-slate-200 bg-white p-5">
               <h2 className="text-sm font-semibold text-slate-900">
@@ -185,6 +199,26 @@ export default async function LeadDetailPage({
                       <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">
                         {a.body}
                       </p>
+                    )}
+                    {(() => {
+                      const v = a.variant as {
+                        angle: string | null; hook: string | null; cta: string | null;
+                        label: string | null; subject: string | null; step_number: number;
+                      } | null;
+                      if (!v) return null;
+                      const tags = [v.angle, v.hook, v.cta].filter(Boolean).join(" · ");
+                      return (
+                        <p className="mt-1 text-xs text-slate-400">
+                          Step {v.step_number}
+                          {v.label ? ` · variant ${v.label}` : ""}
+                          {tags ? ` · ${tags}` : v.subject ? ` · "${v.subject}"` : ""}
+                        </p>
+                      );
+                    })()}
+                    {a.classification && (
+                      <span className="mt-1 inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                        {a.classification.replace("_", " ")}
+                      </span>
                     )}
                   </div>
                 </div>
