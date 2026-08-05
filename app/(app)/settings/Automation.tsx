@@ -122,6 +122,12 @@ export default function Automation() {
           onChange={(v) => update({ auto_send_replies: v })}
         />
         <Toggle
+          label="Enrol new leads into campaigns"
+          hint="New leads matching a Routing rule are pushed into that campaign. Rules set to 'needs approval' appear in Approvals instead."
+          checked={Boolean(s.auto_enroll_leads)}
+          onChange={(v) => update({ auto_enroll_leads: v })}
+        />
+        <Toggle
           label="Pause outreach when they reply"
           hint="Stops the sequence chasing someone who has already responded."
           checked={s.pause_on_reply}

@@ -40,6 +40,7 @@ export type AutomationSettings = {
   send_window_end: number;
   timezone: string;
   max_actions_per_run: number;
+  auto_enroll_leads?: boolean;
 };
 
 type ReplyWork = {
@@ -201,8 +202,159 @@ export type TickResult = {
   reason?: string;
   repliesDrafted: number;
   actionsSent: number;
+  leadsEnrolled: number;
   errors: { lead?: string; error: string }[];
 };
+
+type EnrollmentWork = {
+  lead_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  full_name: string | null;
+  email: string | null;
+  title: string | null;
+  linkedin_url: string | null;
+  location: string | null;
+  company_name: string | null;
+  company_domain: string | null;
+  industry: string | null;
+  rule_id: string;
+  rule_name: string;
+  provider: "smartlead" | "heyreach";
+  campaign_external_id: string;
+  campaign_name: string | null;
+  linkedin_account_id: number | null;
+  auto_enroll: boolean;
+};
+
+/**
+ * Push matching new leads into the campaign their routing rule points at.
+ * A rule with auto_enroll off produces an approval item instead of sending.
+ */
+async function runEnrollments(
+  supabase: ReturnType<typeof db>,
+  settings: AutomationSettings & { auto_enroll_leads?: boolean },
+  errors: { lead?: string; error: string }[]
+): Promise<number> {
+  if (!settings.auto_enroll_leads) return 0;
+
+  const { data, error } = await supabase.rpc("automation_get_enrollments", {
+    p_secret: secret(),
+    p_limit: 20,
+  });
+  if (error) {
+    errors.push({ error: `enrollment lookup: ${error.message}` });
+    return 0;
+  }
+
+  const items = (data ?? []) as EnrollmentWork[];
+  let enrolled = 0;
+
+  for (const it of items) {
+    const who = it.full_name || it.email || it.lead_id;
+    try {
+      // A rule that isn't set to auto-enrol only proposes the action.
+      if (!it.auto_enroll) {
+        await supabase.rpc("automation_record_action", {
+          p_secret: secret(),
+          p_lead_id: it.lead_id,
+          p_type: "add_to_sequence",
+          p_title: `Add ${who} to ${it.campaign_name ?? it.campaign_external_id}`,
+          p_reasoning: `Matched routing rule "${it.rule_name}".`,
+          p_payload: {
+            channel: it.provider === "heyreach" ? "linkedin" : "email",
+            provider: it.provider,
+            campaign_id: it.campaign_external_id,
+            campaign_name: it.campaign_name,
+            linkedin_account_id: it.linkedin_account_id,
+            email: it.email,
+            first_name: it.first_name,
+            last_name: it.last_name,
+            company_name: it.company_name,
+            rule_id: it.rule_id,
+          } as never,
+          p_trigger_activity_id: null,
+          p_status: "proposed",
+        });
+        continue;
+      }
+
+      let externalLeadId: string | null = null;
+
+      if (it.provider === "smartlead") {
+        if (!it.email) throw new Error("no email address");
+        const res = await smartlead.addLeadsToCampaign(
+          Number(it.campaign_external_id),
+          [
+            {
+              email: it.email,
+              first_name: it.first_name ?? undefined,
+              last_name: it.last_name ?? undefined,
+              company_name: it.company_name ?? undefined,
+              website: it.company_domain ?? undefined,
+              location: it.location ?? undefined,
+              linkedin_profile: it.linkedin_url ?? undefined,
+            },
+          ]
+        );
+        const uploaded = res.reduce((n, r) => n + (r.upload_count ?? 0), 0);
+        if (uploaded === 0) {
+          throw new Error(
+            "Smartlead accepted the request but uploaded 0 leads (duplicate, unsubscribed, or invalid address)"
+          );
+        }
+      } else {
+        if (!it.linkedin_url) throw new Error("no LinkedIn profile URL");
+        if (!it.linkedin_account_id) {
+          throw new Error("routing rule has no HeyReach sender account set");
+        }
+        const res = await heyreach.addLeadsToCampaign(
+          Number(it.campaign_external_id),
+          Number(it.linkedin_account_id),
+          [
+            {
+              profileUrl: it.linkedin_url,
+              firstName: it.first_name ?? undefined,
+              lastName: it.last_name ?? undefined,
+              companyName: it.company_name ?? undefined,
+              position: it.title ?? undefined,
+              location: it.location ?? undefined,
+              emailAddress: it.email ?? undefined,
+            },
+          ]
+        );
+        if ((res.addedLeadsCount ?? 0) + (res.updatedLeadsCount ?? 0) === 0) {
+          throw new Error("HeyReach added 0 leads (already present or rejected)");
+        }
+      }
+
+      const { error: recErr } = await supabase.rpc(
+        "automation_record_enrollment",
+        {
+          p_secret: secret(),
+          p_lead_id: it.lead_id,
+          p_provider: it.provider,
+          p_external_id: it.campaign_external_id,
+          p_name: it.campaign_name,
+          p_rule_id: it.rule_id,
+          p_external_lead_id: externalLeadId,
+        }
+      );
+      if (recErr) throw new Error(recErr.message);
+
+      enrolled++;
+    } catch (e) {
+      errors.push({
+        lead: who,
+        error: `enrol into ${it.campaign_name ?? it.campaign_external_id}: ${
+          e instanceof Error ? e.message : "failed"
+        }`,
+      });
+    }
+  }
+
+  return enrolled;
+}
 
 /** One pass of the worker. Safe to call repeatedly; work is de-duplicated in SQL. */
 export async function tick(opts: { force?: boolean } = {}): Promise<TickResult> {
@@ -225,10 +377,22 @@ export async function tick(opts: { force?: boolean } = {}): Promise<TickResult> 
 
   const settings = work.settings;
   if (!settings?.auto_draft_replies) {
-    return { ran: false, reason: "Auto-drafting replies is turned off.", repliesDrafted: 0, actionsSent: 0, errors };
+    if (!settings?.auto_enroll_leads) {
+      return { ran: false, reason: "Automation is turned off.", repliesDrafted: 0, actionsSent: 0, leadsEnrolled: 0, errors };
+    }
+    // Replies are off but enrolment is on — still do that half.
+    const onlyEnrolled = await runEnrollments(supabase, settings, errors);
+    await supabase.rpc("automation_log_run", {
+      p_secret: secret(),
+      p_replies_drafted: 0,
+      p_actions_sent: onlyEnrolled,
+      p_errors: errors as never,
+      p_notes: "enrolment only",
+    });
+    return { ran: true, repliesDrafted: 0, actionsSent: 0, leadsEnrolled: onlyEnrolled, errors };
   }
   if (!opts.force && !withinSendWindow(settings)) {
-    return { ran: false, reason: "Outside the configured send window.", repliesDrafted: 0, actionsSent: 0, errors };
+    return { ran: false, reason: "Outside the configured send window.", repliesDrafted: 0, actionsSent: 0, leadsEnrolled: 0, errors };
   }
 
   const budget = Math.max(1, settings.max_actions_per_run ?? 25);
@@ -325,6 +489,8 @@ export async function tick(opts: { force?: boolean } = {}): Promise<TickResult> 
     }
   }
 
+  const leadsEnrolled = await runEnrollments(supabase, settings, errors);
+
   await supabase.rpc("automation_log_run", {
     p_secret: secret(),
     p_replies_drafted: repliesDrafted,
@@ -333,7 +499,7 @@ export async function tick(opts: { force?: boolean } = {}): Promise<TickResult> 
     p_notes: opts.force ? "manual run" : "cron",
   });
 
-  return { ran: true, repliesDrafted, actionsSent, errors };
+  return { ran: true, repliesDrafted, actionsSent, leadsEnrolled, errors };
 }
 
 async function executeReply(channel: string, payload: Json, body: string) {

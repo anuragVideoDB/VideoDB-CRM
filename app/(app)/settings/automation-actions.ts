@@ -22,6 +22,7 @@ export type AutomationSettingsRow = {
   send_window_end: number;
   timezone: string;
   max_actions_per_run: number;
+  auto_enroll_leads: boolean;
 };
 
 export async function getAutomationSettings(): Promise<{
@@ -73,6 +74,7 @@ export async function runAutomationNow() {
       `${res.repliesDrafted} repl${res.repliesDrafted === 1 ? "y" : "ies"} drafted`,
     ];
     if (res.actionsSent) parts.push(`${res.actionsSent} sent automatically`);
+    if (res.leadsEnrolled) parts.push(`${res.leadsEnrolled} lead(s) enrolled`);
     if (res.errors.length) parts.push(`${res.errors.length} error(s)`);
     const detail = res.errors.length ? ` — ${res.errors[0].error}` : "";
     revalidatePath("/approvals");

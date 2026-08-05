@@ -12,6 +12,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      routing_rules: {
+        Row: {
+          id: string
+          name: string
+          priority: number
+          is_active: boolean
+          match_source: string[] | null
+          match_channel: string | null
+          match_industry: string[] | null
+          min_employees: number | null
+          max_employees: number | null
+          requires_email: boolean
+          requires_linkedin: boolean
+          provider: string
+          campaign_external_id: string
+          campaign_name: string | null
+          linkedin_account_id: number | null
+          auto_enroll: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          priority?: number
+          is_active?: boolean
+          match_source?: string[] | null
+          match_channel?: string | null
+          match_industry?: string[] | null
+          min_employees?: number | null
+          max_employees?: number | null
+          requires_email?: boolean
+          requires_linkedin?: boolean
+          provider: string
+          campaign_external_id: string
+          campaign_name?: string | null
+          linkedin_account_id?: number | null
+          auto_enroll?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          priority?: number
+          is_active?: boolean
+          match_source?: string[] | null
+          match_channel?: string | null
+          match_industry?: string[] | null
+          min_employees?: number | null
+          max_employees?: number | null
+          requires_email?: boolean
+          requires_linkedin?: boolean
+          provider?: string
+          campaign_external_id?: string
+          campaign_name?: string | null
+          linkedin_account_id?: number | null
+          auto_enroll?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       automation_settings: {
         Row: {
           id: boolean
@@ -24,6 +87,7 @@ export type Database = {
           send_window_end: number
           timezone: string
           max_actions_per_run: number
+          auto_enroll_leads: boolean
           updated_at: string
         }
         Insert: {
@@ -37,6 +101,7 @@ export type Database = {
           send_window_end?: number
           timezone?: string
           max_actions_per_run?: number
+          auto_enroll_leads?: boolean
           updated_at?: string
         }
         Update: {
@@ -50,6 +115,7 @@ export type Database = {
           send_window_end?: number
           timezone?: string
           max_actions_per_run?: number
+          auto_enroll_leads?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -679,6 +745,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      automation_get_enrollments: {
+        Args: { p_secret: string; p_limit?: number }
+        Returns: Json
+      }
+      automation_record_enrollment: {
+        Args: {
+          p_secret: string
+          p_lead_id: string
+          p_provider: string
+          p_external_id: string
+          p_name: string | null
+          p_rule_id: string
+          p_external_lead_id?: string | null
+        }
+        Returns: string
+      }
       crm_analytics: {
         Args: { p_days?: number }
         Returns: Json
